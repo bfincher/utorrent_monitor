@@ -6,6 +6,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 from email.mime.text import MIMEText
 import json
 from datetime import datetime
+from datetime import timedelta
 import smtplib
 from utorrent_client import UtorrentClient
 from data.models import *
@@ -15,6 +16,8 @@ import django
 LABELS = {'tv'}
 STATUS = {'Finished'}
 REQUIRED_COMPLETION_TIME_SECONDS = 30 * 60 # 30 minutes
+TWO_DAYS = timedelta(seconds=2)
+#TWO_DAYS = timedelta(days=2)
 
 class UtorrentMonitor(object):
 
@@ -28,7 +31,7 @@ class UtorrentMonitor(object):
         j = json.loads(self.client.response.text)
 
         now = datetime.now()
-        all_hashes = []
+        twoDaysAgo = now - TWO_DAYS
         for entry in j['torrents']:
             tHash = entry[0]
             title = entry[2]
@@ -38,24 +41,31 @@ class UtorrentMonitor(object):
             completed = datetime.fromtimestamp(entry[24])
 
             if status == 'Finished' or status == 'Seeding':
-                all_hashes.append(tHash)
-                if not CompletedTorrents.objects.filter(hash=tHash).first():
-                    send_email(title)
-                    o = CompletedTorrents()
-                    o.hash = tHash
-                    o.name = title
-                    o.save()
-            
-            if (label in LABELS and status in STATUS):
-                delta = now - completed
-                if (delta.total_seconds() > REQUIRED_COMPLETION_TIME_SECONDS):
-                    #print '%s %s %s %s %s %s %s' % (tHash, title, label, status, added, completed, delta.total_seconds())
-                    
-                    print 'deleting %s' % title
-                    self.client.removeData(tHash)
+                existing = CompletedTorrents.objects.filter(hash=tHash).first()
+                if not existing:
+                    existing = CompletedTorrents()
+                    existing.hash = tHash
+                    existing.name = title
+                    existing.label = label
+                    existing.emailed = False
+                    existing.save()
 
-        if all_hashes:
-            CompletedTorrents.objects.exclude(hash__in=all_hashes).delete()
+                if not existing.emailed:
+                    send_email(title)
+                    existing.emailed = True
+                    existing.save()
+            
+                if (label in LABELS and status in STATUS):
+                    delta = now - completed
+                    if (delta.total_seconds() > REQUIRED_COMPLETION_TIME_SECONDS):
+                        #print '%s %s %s %s %s %s %s' % (tHash, title, label, status, added, completed, delta.total_seconds())
+                    
+                        print 'deleting %s' % title
+                        self.client.removeData(tHash)
+                        existing.deletedTime = now
+                        existing.save()
+
+        CompletedTorrents.objects.filter(label__in=LABELS, deletedTime__lt=twoDaysAgo).delete()
 
 def send_email(content):
     msg = MIMEText('Torrent %s completed' % content)

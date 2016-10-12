@@ -9,6 +9,6 @@ if __name__ == "__main__":
     try:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)
-    except Exception:
-        print("There was an error loading django modules. Do you have django installed?")
+    except Exception, e:
+        print("There was an error loading django modules. Do you have django installed?  " + e)
         sys.exit()
