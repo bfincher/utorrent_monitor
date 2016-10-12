@@ -27,8 +27,6 @@ class UtorrentMonitor(object):
         
         j = json.loads(self.client.response.text)
 
-        print j
-        
         now = datetime.now()
         all_hashes = []
         for entry in j['torrents']:
