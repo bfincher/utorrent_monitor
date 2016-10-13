@@ -13,11 +13,11 @@ from data.models import *
 from data.models import CompletedTorrents
 import django
 
-LABELS = {'tv'}
-STATUS = {'Finished'}
+LABELS_TO_DELETE = {'tv'}
+STATUS_TO_DELETE = {'Finished'}
 REQUIRED_COMPLETION_TIME_SECONDS = 30 * 60 # 30 minutes
-TWO_DAYS = timedelta(seconds=2)
-#TWO_DAYS = timedelta(days=2)
+
+TWO_DAYS = timedelta(days=2)
 
 class UtorrentMonitor(object):
 
@@ -31,31 +31,35 @@ class UtorrentMonitor(object):
         j = json.loads(self.client.response.text)
 
         now = datetime.now()
-        twoDaysAgo = now - TWO_DAYS
+        allHashes = []
         for entry in j['torrents']:
             tHash = entry[0]
+            allHashes.append(tHash)
             title = entry[2]
             label = entry[11]
             status = entry[21]
             #added = datetime.fromtimestamp(entry[23])
             completed = datetime.fromtimestamp(entry[24])
 
-            if status == 'Finished' or status == 'Seeding':
-                existing = CompletedTorrents.objects.filter(hash=tHash).first()
-                if not existing:
-                    existing = CompletedTorrents()
-                    existing.hash = tHash
-                    existing.name = title
-                    existing.label = label
-                    existing.emailed = False
-                    existing.save()
+            existing = CompletedTorrents.objects.filter(hash=tHash).first()
+            if not existing:
+                existing = CompletedTorrents()
+                existing.hash = tHash
+                existing.name = title
+                existing.emailed = False
 
+            existing.status = status
+            existing.label = label
+            existing.save()
+
+
+            if status == 'Finished' or status == 'Seeding':
                 if not existing.emailed:
                     send_email(title)
                     existing.emailed = True
                     existing.save()
             
-                if (label in LABELS and status in STATUS):
+                if (label in LABELS_TO_DELETE and status in STATUS_TO_DELETE):
                     delta = now - completed
                     if (delta.total_seconds() > REQUIRED_COMPLETION_TIME_SECONDS):
                         #print '%s %s %s %s %s %s %s' % (tHash, title, label, status, added, completed, delta.total_seconds())
@@ -65,7 +69,9 @@ class UtorrentMonitor(object):
                         existing.deletedTime = now
                         existing.save()
 
-        CompletedTorrents.objects.filter(label__in=LABELS, deletedTime__lt=twoDaysAgo).delete()
+        twoDaysAgo = now - TWO_DAYS
+        CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime__lt=twoDaysAgo).delete()
+        CompletedTorrents.objects.exclude(label__in=LABELS_TO_DELETE).exclude(hash__in=allHashes).delete()
 
 def send_email(content):
     msg = MIMEText('Torrent %s completed' % content)
