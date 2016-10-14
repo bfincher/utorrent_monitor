@@ -3,18 +3,21 @@ import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 
-from email.mime.text import MIMEText
-import json
+from data.models import CompletedTorrents
 from datetime import datetime
 from datetime import timedelta
+import django
+from email.mime.text import MIMEText
+import logging
+from logging import DEBUG
+import json
 import smtplib
 from utorrent_client import UtorrentClient
-from data.models import CompletedTorrents
-import django
 
 LABELS_TO_DELETE = {'tv', 'Movies'}
 STATUS_TO_DELETE = {'Finished'}
 REQUIRED_COMPLETION_TIME = timedelta(seconds=30 * 60) # 30 minutes
+logger = logging.getLogger('django_monitor')
 
 TWO_DAYS = timedelta(days=2)
 
@@ -61,9 +64,10 @@ class UtorrentMonitor(object):
                 if (label in LABELS_TO_DELETE and status in STATUS_TO_DELETE):
                     delta = now - completed
                     if (delta > REQUIRED_COMPLETION_TIME):
-                        #print '%s %s %s %s %s %s %s' % (tHash, title, label, status, added, completed, delta.total_seconds())
+                        if logger.isEnabledFor(DEBUG):
+                            logger.debug('%s %s %s %s %s %s %s', tHash, title, label, status, added, completed, delta.total_seconds())
                     
-                        print 'deleting %s' % title
+                        logger.info('deleting %s', title)
                         self.client.removeData(tHash)
                         existing.deletedTime = now
                         existing.save()

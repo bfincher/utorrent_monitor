@@ -6,11 +6,15 @@ Created on Oct 1, 2016
 '''
 
 from collections import OrderedDict
+import logging
+from logging import DEBUG
 from requests.compat import urlencode, urljoin
 from requests import Session
 import re
 import time
 import traceback
+
+logger = logging.getLogger('django_client')
 
 class UtorrentClient(object):
 
@@ -34,7 +38,7 @@ class UtorrentClient(object):
             log_string = 'Requested a {0} connection to url {1}'.format(method.upper(), self.url)
         
         if not self.auth:
-            print 'Authentication Failed'
+            logger.error('Authentication Failed')
             return False
         
         if params:
@@ -45,7 +49,8 @@ class UtorrentClient(object):
         if params:
             log_string += '?%s' % urlencode(params)
             
-        #print log_string
+        if logger.isEnabledFor(DEBUG):
+            logger.debug(log_string)
         
         try:
             self.response = self.session.request(method, 
@@ -55,8 +60,8 @@ class UtorrentClient(object):
                                                  timeout=120, 
                                                  verify=False)
             self.response.raise_for_status()
-        except Exception:
-            traceback.print_exc()
+        except Exception, e:
+            logger.exception(e)
             return False
         
     def _get_auth(self):
@@ -67,8 +72,8 @@ class UtorrentClient(object):
             self.response = self.session.get(urljoin(self.url, 'token.html'), verify=False)
             self.response.raise_for_status()
             self.auth = re.findall("<div.*?>(.*?)</", self.response.text)[0]
-        except Exception:
-            traceback.print_exc()
+        except Exception, e:
+            logger.exception(e)
             self.auth = None
 
         return self.auth

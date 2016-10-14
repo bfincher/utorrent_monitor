@@ -14,3 +14,30 @@ INSTALLED_APPS = (
     )
 
 SECRET_KEY = 'REPLACE_ME'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'default': {
+            'level' : 'INFO',
+            'class' : 'logging.handlers.RotatingFileHandler',
+            'filename' : 'log.log',
+            'maxBytes' : 1024*1024*10, # 10 MB
+            'backupCount' : 5,
+            'formatter' : 'standard',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    }
+}
