@@ -13,7 +13,7 @@ from data.models import *
 from data.models import CompletedTorrents
 import django
 
-LABELS_TO_DELETE = {'tv'}
+LABELS_TO_DELETE = {'tv', 'Movies'}
 STATUS_TO_DELETE = {'Finished'}
 REQUIRED_COMPLETION_TIME_SECONDS = 30 * 60 # 30 minutes
 
