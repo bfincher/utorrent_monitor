@@ -9,13 +9,12 @@ from datetime import datetime
 from datetime import timedelta
 import smtplib
 from utorrent_client import UtorrentClient
-from data.models import *
 from data.models import CompletedTorrents
 import django
 
 LABELS_TO_DELETE = {'tv', 'Movies'}
 STATUS_TO_DELETE = {'Finished'}
-REQUIRED_COMPLETION_TIME_SECONDS = 30 * 60 # 30 minutes
+REQUIRED_COMPLETION_TIME = timedelta(seconds=30 * 60) # 30 minutes
 
 TWO_DAYS = timedelta(days=2)
 
@@ -61,7 +60,7 @@ class UtorrentMonitor(object):
             
                 if (label in LABELS_TO_DELETE and status in STATUS_TO_DELETE):
                     delta = now - completed
-                    if (delta.total_seconds() > REQUIRED_COMPLETION_TIME_SECONDS):
+                    if (delta > REQUIRED_COMPLETION_TIME):
                         #print '%s %s %s %s %s %s %s' % (tHash, title, label, status, added, completed, delta.total_seconds())
                     
                         print 'deleting %s' % title
