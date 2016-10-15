@@ -43,17 +43,15 @@ class UtorrentMonitor(object):
             #added = datetime.fromtimestamp(entry[23])
             completed = datetime.fromtimestamp(entry[24])
 
-            existing = CompletedTorrents.objects.filter(hash=tHash).first()
-            if not existing:
-                existing = CompletedTorrents()
-                existing.hash = tHash
-                existing.name = title
-                existing.emailed = False
+            defaults={'name': title, 'status': status, 'label': label, 'emailed': False}
+            existing, created = CompletedTorrents.objects.get_or_create(
+                hash=tHash,
+                defaults=defaults)
 
-            existing.status = status
-            existing.label = label
-            existing.save()
-
+            if existing.status != status or existing.label != label:
+                existing.status = status
+                existing.label = label
+                existing.save()
 
             if status == 'Finished' or status == 'Seeding':
                 if not existing.emailed:
