@@ -9,6 +9,8 @@ DATABASES = {
     }
 }
 
+DEBUG = True
+
 INSTALLED_APPS = (
     'data',
     )
@@ -17,7 +19,7 @@ SECRET_KEY = 'REPLACE_ME'
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'formatters': {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
@@ -25,7 +27,7 @@ LOGGING = {
     },
     'handlers': {
         'default': {
-            'level' : 'INFO',
+            'level' : 'DEBUG',
             'class' : 'logging.handlers.RotatingFileHandler',
             'filename' : 'log.log',
             'maxBytes' : 1024*1024*10, # 10 MB
@@ -35,6 +37,16 @@ LOGGING = {
     },
     'loggers': {
         '': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'requests.packages.urllib3.connectionpool': {
+            'handlers': ['default'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django.db.backends' : {
             'handlers': ['default'],
             'level': 'INFO',
             'propagate': True,
