@@ -44,19 +44,19 @@ class UtorrentMonitor(object):
             completed = datetime.fromtimestamp(entry[24])
 
             defaults={'name': title, 'status': status, 'label': label, 'emailed': False}
-            existing, created = CompletedTorrents.objects.get_or_create(
+            entry, created = CompletedTorrents.objects.get_or_create(
                 hash=tHash,
                 defaults=defaults)
 
-            if existing.status != status or existing.label != label:
-                existing.status = status
-                existing.label = label
-                existing.save()
+            if entry.status != status or entry.label != label:
+                entry.status = status
+                entry.label = label
+                entry.save()
 
-            if (not existing.emailed) and (status == 'Finished' or status == 'Seeding'):
+            if (not entry.emailed) and (status == 'Finished' or status == 'Seeding'):
                 send_email(title)
-                existing.emailed = True
-                existing.save()
+                entry.emailed = True
+                entry.save()
             
             if (label in LABELS_TO_DELETE and status in STATUS_TO_DELETE):
                 delta = now - completed
@@ -66,8 +66,8 @@ class UtorrentMonitor(object):
                     
                     logger.info('deleting %s', title)
                     self.client.removeData(tHash)
-                    existing.deletedTime = now
-                    existing.save()
+                    entry.deletedTime = now
+                    entry.save()
 
         twoDaysAgo = now - TWO_DAYS
         CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime__lt=twoDaysAgo).delete()
