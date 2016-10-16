@@ -79,7 +79,7 @@ class UtorrentClient(object):
         return self.auth
     
     def removeData(self, torrent_hash):
-        params = OrderedDict({'action': 'removedata', 'hash': torrent_hash})
+        params = OrderedDict({'action': 'removedatatorrent', 'hash': torrent_hash})
         self.request(params=params)
 
     def list(self):
