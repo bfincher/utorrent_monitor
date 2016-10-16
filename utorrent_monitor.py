@@ -19,8 +19,6 @@ STATUS_TO_DELETE = {'Finished'}
 REQUIRED_COMPLETION_TIME = timedelta(seconds=30 * 60) # 30 minutes
 logger = logging.getLogger('django_monitor')
 
-TWO_DAYS = timedelta(days=2)
-
 class UtorrentMonitor(object):
 
     def __init__(self, host, username, password):
@@ -66,19 +64,10 @@ class UtorrentMonitor(object):
                     
                     logger.info('deleting %s', title)
                     self.client.removeData(tHash)
-                    entry.deletedTime = now
                     entry.save()
 
-        twoDaysAgo = now - TWO_DAYS
-
-        #delete DB entry for TV, Movies that have beel deleted from Utorrent more than 2 days ago
-        CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime__lt=twoDaysAgo).delete()
-
-        #delete non TV, Movies that are not in the current list of data from Utorrent
-        CompletedTorrents.objects.exclude(label__in=LABELS_TO_DELETE).exclude(hash__in=allHashes).delete()
-
-        #delete TV, Movies that are not in the list from Utorrent and have a deletedTime of None
-        CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime=None).exclude(hash__in=allHashes).delete()
+        #delete entris that are not in the current list of data from Utorrent
+        CompletedTorrents.objects.exclude(hash__in=allHashes).delete()
 
 def send_email(content):
     msg = MIMEText('Torrent %s completed' % content)
