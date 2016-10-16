@@ -70,8 +70,15 @@ class UtorrentMonitor(object):
                     entry.save()
 
         twoDaysAgo = now - TWO_DAYS
+
+        #delete DB entry for TV, Movies that have beel deleted from Utorrent more than 2 days ago
         CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime__lt=twoDaysAgo).delete()
+
+        #delete non TV, Movies that are not in the current list of data from Utorrent
         CompletedTorrents.objects.exclude(label__in=LABELS_TO_DELETE).exclude(hash__in=allHashes).delete()
+
+        #delete TV, Movies that are not in the list from Utorrent and have a deletedTime of None
+        CompletedTorrents.objects.filter(label__in=LABELS_TO_DELETE).filter(deletedTime=None).exclude(hash__in=allHashes).delete()
 
 def send_email(content):
     msg = MIMEText('Torrent %s completed' % content)
