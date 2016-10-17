@@ -12,9 +12,8 @@ from requests.compat import urlencode, urljoin
 from requests import Session
 import re
 import time
-import traceback
 
-logger = logging.getLogger('django_client')
+logger = logging.getLogger(__name__)
 
 class UtorrentClient(object):
 
@@ -30,12 +29,11 @@ class UtorrentClient(object):
         self.session.auth = (self.username, self.password)
 
     def request(self, method="get", params=None):
-        log_string = ''
         if time.time() > self.last_time + 1800 or not self.auth:
             self.last_time = time.time()
             self._get_auth()
             
-            log_string = 'Requested a {0} connection to url {1}'.format(method.upper(), self.url)
+            logger.debug('Requested a {0} connection to url {1}', method.upper(), self.url)
         
         if not self.auth:
             logger.error('Authentication Failed')
@@ -47,11 +45,8 @@ class UtorrentClient(object):
             params = OrderedDict({'token': self.auth})
             
         if params:
-            log_string += '?%s' % urlencode(params)
+            logger.debug('?%s',urlencode(params))
             
-        if logger.isEnabledFor(DEBUG):
-            logger.debug(log_string)
-        
         try:
             self.response = self.session.request(method, 
                                                  self.url, 
