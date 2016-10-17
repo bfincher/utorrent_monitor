@@ -28,6 +28,7 @@ class UtorrentMonitor(object):
     def run(self):
         self.client.list()
         
+        #print 'response = %s' % self.client.response.text
         j = json.loads(self.client.response.text)
 
         now = datetime.now()

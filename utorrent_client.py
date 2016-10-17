@@ -6,6 +6,7 @@ Created on Oct 1, 2016
 '''
 
 from collections import OrderedDict
+from generic_client import GenericClient
 import logging
 from logging import DEBUG
 from requests.compat import urlencode, urljoin
@@ -15,25 +16,22 @@ import time
 
 logger = logging.getLogger(__name__)
 
-class UtorrentClient(object):
+class UtorrentClient(GenericClient):
 
     def __init__(self, host, username, password):
+        super(UtorrentClient, self).__init__('http://' + host + ':8080/gui/')
         self.username = username
         self.password = password
-        self.host = host
-        self.url = "http://" + self.host + ":8080/gui/"
         self.last_time = time.time()
-        self.response = None
-        self.auth = None
-        self.session = make_session()
         self.session.auth = (self.username, self.password)
+        self.auth = None
 
     def request(self, method="get", params=None):
         if time.time() > self.last_time + 1800 or not self.auth:
             self.last_time = time.time()
             self._get_auth()
             
-            logger.debug('Requested a {0} connection to url {1}', method.upper(), self.url)
+            logger.debug('Requested a %s connection to url %s', method.upper(), self.url)
         
         if not self.auth:
             logger.error('Authentication Failed')
@@ -44,20 +42,7 @@ class UtorrentClient(object):
         if not params:
             params = OrderedDict({'token': self.auth})
             
-        if params:
-            logger.debug('?%s',urlencode(params))
-            
-        try:
-            self.response = self.session.request(method, 
-                                                 self.url, 
-                                                 params=params, 
-                                                 data=None, 
-                                                 timeout=120, 
-                                                 verify=False)
-            self.response.raise_for_status()
-        except Exception, e:
-            logger.exception(e)
-            return False
+        super(UtorrentClient, self).request(method, params)
         
     def _get_auth(self):
         """
@@ -80,8 +65,4 @@ class UtorrentClient(object):
     def list(self):
         params = OrderedDict({'list': '1'})
         self.request(params=params)
-
-def make_session():
-    session = Session()
-    return session
 
