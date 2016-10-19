@@ -47,6 +47,9 @@ class UtorrentMonitor(object):
                 hash=tHash,
                 defaults=defaults)
 
+            if created:
+                logger.info('Created DB entry.  %s, %s', tHash, title)
+
             if entry.status != status or entry.label != label:
                 entry.status = status
                 entry.label = label
@@ -68,7 +71,9 @@ class UtorrentMonitor(object):
                     entry.save()
 
         #delete entris that are not in the current list of data from Utorrent
-        CompletedTorrents.objects.exclude(hash__in=allHashes).delete()
+        for toDelete in CompletedTorrents.objects.exclude(hash__in=allHashes):
+            logger.info('Deleting DB entry %s, %s', toDelete.hash, toDelete.name)
+            toDelete.delete()
 
 def send_email(content):
     msg = MIMEText('Torrent %s completed' % content)
