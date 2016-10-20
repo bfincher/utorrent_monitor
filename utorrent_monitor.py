@@ -2,11 +2,12 @@
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
+import django
+django.setup()
 
 from data.models import CompletedTorrents
 from datetime import datetime
 from datetime import timedelta
-import django
 from email.mime.text import MIMEText
 import logging
 from logging import DEBUG
@@ -95,8 +96,6 @@ def send_email(content):
     s.quit()
 
 if __name__ == '__main__':
-        django.setup()
-
         with open('settings.json', 'r') as f:
             settings = json.load(f)
 
