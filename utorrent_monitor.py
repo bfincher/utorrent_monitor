@@ -14,16 +14,16 @@ import json
 import smtplib
 from utorrent_client import UtorrentClient
 
-LABELS_TO_DELETE = {'tv', 'Movies'}
-STATUS_TO_DELETE = {'Finished'}
 REQUIRED_COMPLETION_TIME = timedelta(seconds=30 * 60) # 30 minutes
 logger = logging.getLogger('django_monitor')
 
 class UtorrentMonitor(object):
 
-    def __init__(self, host, username, password):
+    def __init__(self, settings):
 
-        self.client = UtorrentClient(host, username, password)
+        self.client = UtorrentClient(settings['utorrent_hostname'], settings['utorrent_username'], settings['utorrent_password'])
+        self.labelsToDelete = settings['labels_to_delete']
+        self.statusToDelete = settings['status_to_delete']
 
     def run(self):
         try:
@@ -65,7 +65,7 @@ class UtorrentMonitor(object):
                     entry.emailed = True
                     entry.save()
             
-                if (label in LABELS_TO_DELETE and status in STATUS_TO_DELETE):
+                if (label in self.labelsToDelete and status in self.statusToDelete):
                     delta = now - completed
                     if (delta > REQUIRED_COMPLETION_TIME):
                         if logger.isEnabledFor(DEBUG):
@@ -73,7 +73,6 @@ class UtorrentMonitor(object):
                     
                         logger.info('deleting %s', title)
                         self.client.removeData(tHash)
-                        entry.save()
 
             #delete entris that are not in the current list of data from Utorrent
             for toDelete in CompletedTorrents.objects.exclude(hash__in=allHashes):
@@ -97,5 +96,9 @@ def send_email(content):
 
 if __name__ == '__main__':
         django.setup()
-        monitor = UtorrentMonitor('uvmediavpn', 'admin', 'admin')
+
+        with open('settings.json', 'r') as f:
+            settings = json.load(f)
+
+        monitor = UtorrentMonitor(settings)
         monitor.run()

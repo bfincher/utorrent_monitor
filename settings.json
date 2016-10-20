@@ -1,0 +1,12 @@
+{ "utorrent_hostname": "uvmediavpn", 
+"utorrent_username": "admin", 
+"utorrent_password": "admin",
+"labels_to_delete" : [
+    "tv",
+    "Movies"
+],
+"status_to_delete" : [
+    "Finished"
+]
+}
+
