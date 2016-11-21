@@ -24,7 +24,7 @@ class GenericClient(object):
                                                  timeout=120, 
                                                  verify=False)
             self.response.raise_for_status()
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             return False
 

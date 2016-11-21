@@ -79,7 +79,7 @@ class UtorrentMonitor(object):
             for toDelete in CompletedTorrents.objects.exclude(hash__in=allHashes):
                 logger.info('Deleting DB entry %s, %s', toDelete.hash, toDelete.name)
                 toDelete.delete()
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
 def send_email(content):

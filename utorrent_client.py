@@ -52,7 +52,7 @@ class UtorrentClient(GenericClient):
             self.response = self.session.get(urljoin(self.url, 'token.html'), verify=False)
             self.response.raise_for_status()
             self.auth = re.findall("<div.*?>(.*?)</", self.response.text)[0]
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             self.auth = None
 
