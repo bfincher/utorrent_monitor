@@ -25,6 +25,7 @@ class UtorrentMonitor(object):
         self.client = UtorrentClient(settings['utorrent_hostname'], settings['utorrent_username'], settings['utorrent_password'])
         self.labelsToDelete = settings['labels_to_delete']
         self.statusToDelete = settings['status_to_delete']
+        self.autoDeleteDelta = timedelta(minutes=settings['autoDeleteAfterSeedingMinutes'])
 
     def run(self):
         try:
@@ -46,34 +47,51 @@ class UtorrentMonitor(object):
                 label = entry[11]
                 status = entry[21]
                 #added = datetime.fromtimestamp(entry[23])
-                completed = datetime.fromtimestamp(entry[24])
+                completedTime = datetime.fromtimestamp(entry[24])
 
                 defaults={'name': title, 'status': status, 'label': label, 'emailed': False}
                 entry, created = CompletedTorrents.objects.get_or_create(
                     hash=tHash,
                     defaults=defaults)
 
+                saveRequired = False
                 if created:
                     logger.info('Created DB entry.  %s, %s', tHash, title)
 
                 if entry.status != status or entry.label != label:
                     entry.status = status
                     entry.label = label
+                    saveRequired=True
+
+                if status in ['Fnished', 'Seeding']:
+                    if entry.startSeedingTime is None:
+                        entry.startSeedingTime = completedTime
+                        saveRequired=True
+
+                    if not entry.emailed:
+                        send_email(title)
+                        entry.emailed = True
+                        saveRequired=True
+            
+                if saveRequired:
                     entry.save()
 
-                if (not entry.emailed) and (status == 'Finished' or status == 'Seeding'):
-                    send_email(title)
-                    entry.emailed = True
-                    entry.save()
-            
                 if (label in self.labelsToDelete and status in self.statusToDelete):
-                    delta = now - completed
+                    delta = now - completedTime
                     if (delta > REQUIRED_COMPLETION_TIME):
                         if logger.isEnabledFor(DEBUG):
-                            logger.debug('%s %s %s %s %s %s %s', tHash, title, label, status, added, completed, delta.total_seconds())
+                            logger.debug('%s %s %s %s %s %s %s', tHash, title, label, status, added, completedTime, delta.total_seconds())
                     
                         logger.info('deleting %s', title)
                         self.client.removeData(tHash)
+                        logger.info('Deleting DB entry %s, %s', entry.hash, entry.name)
+                        entry.delete()
+
+            autoDeleteTime = now - self.autoDeleteDelta
+            for entry in CompletedTorrents.objects.filter(status='Seeding').filter(label__in=settings['labels_to_delete']).filter(startSeedingTime__lte=autoDeleteTime):
+                logger.info('Auto deleting %s, %s due to max seeding time', entry.name, entry.hash)
+                self.client.removeData(entry.hash)
+                entry.delete()
 
             #delete entris that are not in the current list of data from Utorrent
             for toDelete in CompletedTorrents.objects.exclude(hash__in=allHashes):
@@ -96,8 +114,8 @@ def send_email(content):
     s.quit()
 
 if __name__ == '__main__':
-        with open('settings.json', 'r') as f:
-            settings = json.load(f)
+    with open('settings.json', 'r') as f:
+        settings = json.load(f)
 
-        monitor = UtorrentMonitor(settings)
-        monitor.run()
+    monitor = UtorrentMonitor(settings)
+    monitor.run()
